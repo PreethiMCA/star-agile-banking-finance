@@ -19,38 +19,28 @@ pipeline {
         }
        stage('Generate Test Reports') {
            steps {
-               publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: '/var/lib/jenkins/workspace/BankingProject/target/surefire-reports', reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+               publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: '/var/lib/jenkins/workspace/bankingpipeline/target/surefire-reports', reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: '', useWrapperFileDirectly: true])
                     }
             }
        stage('Create Docker Image') {
            steps {
                sh 'docker build -t preethiadmin/banking-project-demo:2.0 .'
                     }
-                }
-       stage('Docker-Login') {
+        } 
+
+        stage('Dockerhub login') {
+          steps {
+              echo 'logging in Dokcerhub with username and password'
+              withCredentials([usernamePassword(credentialsId: '45a0aeee-adb4-4712-a747-b472a0f3ec07', passwordVariable: 'docker_pass', usernameVariable: 'docker_user')]) {
+              sh 'docker login -u ${docker_user} -p ${docker_pass}'
+              }
+          }
+        }
+       stage('Docker Push Image') {
            steps {
-               withCredentials([usernamePassword(credentialsId: 'Docker-login', passwordVariable: 'dockerpassword', usernameVariable: 'dockerlogin')]) { 
-               sh 'docker login -u ${dockerlogin} -p ${dockerpassword}'
-                                   }
-                        }
-                }
-       stage('Push-Image') {
-           steps {
+               echo 'Pushing image to docker hub'
                sh 'docker push preethiadmin/banking-project-demo:2.0'
-                     }
-                }
-       stage('Config & Deployment') {
-            steps {
-                
-                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'AWS-ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                    dir('terraform-files') {
-                    sh 'sudo chmod 600 mykey.pem'
-                    sh 'terraform init'
-                    sh 'terraform validate'
-                    sh 'terraform apply --auto-approve'
-}
-    }
-}
-}
+           }
+       }
 }
 }
